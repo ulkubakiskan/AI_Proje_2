@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Munchkin AI Simülasyonu</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #1a1a2e; color: white; margin: 0; padding: 20px; text-align: center; }
+        .container { max-width: 950px; margin: auto; }
+        .game-board { display: flex; justify-content: space-between; background: #16213e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); margin-bottom: 20px; }
+        .box { width: 45%; background: #0f3460; padding: 20px; border-radius: 15px; position: relative; }
+
+        .sprite-container { display: flex; justify-content: center; align-items: center; height: 120px; margin-bottom: 15px; }
+        .sprite { font-size: 80px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); transition: 0.3s; }
+
+        .power-bar-bg { background: #222; width: 100%; height: 25px; border-radius: 12px; overflow: hidden; margin: 15px 0; border: 2px solid #e94560; }
+        .hero-bar-bg { border-color: #4facfe; }
+        .power-bar-fill { height: 100%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .blue-fill { background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%); width: 0%; }
+        .red-fill { background: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%); width: 0%; }
+
+        .cards-area { display: flex; justify-content: center; gap: 10px; margin: 15px 0; min-height: 95px; }
+
+        .magic-card { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); color: #333; padding: 8px; border-radius: 8px; width: 85px; height: 90px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid #fff; animation: popIn 0.3s ease-out; text-align: center; }
+        .card-title { font-size: 11px; font-weight: bold; color: #222; margin-bottom: 5px; line-height: 1.1;}
+        .card-power { font-size: 24px; font-weight: bold; color: #d32f2f; }
+
+        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        .action-log { background: #111; padding: 15px; border-radius: 10px; font-size: 26px; font-weight: bold; color: #f6d365; margin: 20px 0; min-height: 35px; text-transform: uppercase; letter-spacing: 2px; }
+
+        button { background: #e94560; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; transition: 0.3s; margin: 5px; font-weight: bold; box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);}
+        button:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(233, 69, 96, 0.6); }
+        .btn-play { background: #4facfe; box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4); }
+        .btn-play:hover { background: #00f2fe; }
+
+        .graphs { background: rgba(0,0,0,0.4); padding: 20px; border-radius: 10px; margin-top: 30px; color: white; border: 1px solid #4facfe; }
+        .graphs img { max-width: 100%; height: auto; border-radius: 5px; border: 2px solid #ccc; background: white;}
+
+        /* YENİ: Sınıf Avantajı Yazısı İçin Efekt */
+        .bonus-active { color: #00ffcc; font-weight: bold; animation: popIn 0.5s ease-out; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚪 Munchkin AI Simülasyonu 🚪</h1>
+    <p style="font-size: 18px; color: #a9a9b3;">Kapı Tekmeleniyor... Adım: <span id="step-counter" style="color: white; font-weight: bold;">0</span> | Hedef: 30. Seviye</p>
+
+    <div class="game-board">
+        <div class="box">
+            <h2 id="hero-name" style="color: #4facfe;">Kahraman Bekleniyor...</h2>
+            <div class="sprite-container">
+                <div class="sprite" id="hero-sprite">❓</div>
+            </div>
+
+            <h3>Seviye: <span id="hero-lvl">1</span></h3>
+
+            <div id="equipment-panel" style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin-top: 10px; font-size: 14px; text-align: left;">
+                <div style="font-weight: bold; border-bottom: 1px solid #4facfe; margin-bottom: 5px; padding-bottom: 5px;">🎒 Kuşanılmış Eşyalar:</div>
+                <div id="equip-list">
+                    <div style="color:#666">Ekipman bekleniyor...</div>
+                </div>
+            </div>
+
+            <div style="text-align: left; font-size: 14px; margin-top: 15px; color: #ddd;">Çantadaki Eşya Kartları:</div>
+            <div class="cards-area" id="cards-container">
+                <span style='color: #777; margin-top: 20px;'>Kartlar Çekiliyor...</span>
+            </div>
+
+            <p style="font-size: 14px;">✨ Ekipman: +<span id="hero-active-power">0</span> | 🛡️ Zırh: +<span id="hero-def">0</span> <span id="class-bonus-text"></span></p>
+
+            <div class="power-bar-bg hero-bar-bg"><div class="power-bar-fill blue-fill" id="hero-bar"></div></div>
+            <h3>Toplam Güç: <span id="hero-power">0</span></h3>
+        </div>
+
+        <div class="box">
+            <h2 id="monster-name" style="color: #ff4b2b;">Zindan Boş</h2>
+            <div class="sprite-container">
+                <div class="sprite" id="monster-sprite">🌫️</div>
+            </div>
+
+            <h3>Tehlike!</h3>
+            <p style="font-size: 14px; color: #a9a9b3;">Canavar kartı çekildi...</p>
+            <div style="height: 190px;"></div>
+
+            <div class="power-bar-bg"><div class="power-bar-fill red-fill" id="monster-bar"></div></div>
+            <h3>Canavar Seviyesi: <span id="monster-power">0</span></h3>
+        </div>
+    </div>
+
+    <div class="action-log" id="action-text">Zarlar Atılıyor, Yapay Zeka Karar Bekliyor...</div>
+
+    <button onclick="playStep()" class="btn-play">Zarı At / Hamle Yap</button>
+    <button onclick="autoPlay()" id="auto-btn" class="btn-play">Oto-Oynat</button>
+    <button onclick="resetGame()">Masayı Temizle (Sıfırla)</button>
+
+    <div class="graphs">
+        <h3>📊 Yapay Zeka Başarım Grafikleri</h3>
+        <p>Ajanımızın 5000 el oyun oynayarak (Q-Learning ile) nasıl akıllandığını gösteren eğitim verisi:</p>
+        <img src="/docs/training_results.png" alt="Eğitim Grafiği Bulunamadı. Lütfen önce train.py dosyasını çalıştırın.">
+    </div>
+
+</div>
+
+<script>
+    let autoPlayInterval = null;
+
+    function drawCards(cardsArray) {
+        const container = document.getElementById("cards-container");
+        container.innerHTML = "";
+        if (!cardsArray || cardsArray.length === 0) {
+            container.innerHTML = "<span style='color: #777; margin-top: 20px;'>El Boş!</span>";
+            return;
+        }
+        for(let i = 0; i < cardsArray.length; i++) {
+            container.innerHTML += `
+            <div class="magic-card" title="Hazine">
+                <div class="card-title">${cardsArray[i].name}</div>
+                <div class="card-power">+${cardsArray[i].power}</div>
+            </div>`;
+        }
+    }
+
+    function updateEquipment(equipData) {
+        if(!equipData) return;
+        const list = document.getElementById("equip-list");
+        list.innerHTML = "";
+        for (const [slot, item_desc] of Object.entries(equipData)) {
+            if (item_desc !== "Boş") {
+                list.innerHTML += `<div>🔹 ${slot}: <span style="color:#f6d365">${item_desc}</span></div>`;
+            } else {
+                list.innerHTML += `<div style="color:#666">🔹 ${slot}: Boş</div>`;
+            }
+        }
+    }
+
+    async function playStep() {
+        const response = await fetch('/play-step');
+        const data = await response.json();
+
+        if (!data.player) {
+            stopAutoPlay();
+            return;
+        }
+
+        document.getElementById("hero-name").innerText = data.hero_info.name;
+        document.getElementById("hero-sprite").innerText = data.hero_info.emoji;
+        document.getElementById("monster-name").innerText = data.monster_info.name;
+        document.getElementById("monster-sprite").innerText = data.monster_info.emoji;
+
+        document.getElementById("step-counter").innerText = data.step;
+        document.getElementById("hero-lvl").innerText = data.player.level;
+        document.getElementById("hero-active-power").innerText = data.player.active_card_power;
+        document.getElementById("hero-def").innerText = data.player.def_bonus;
+
+        // Sınıf Avantajını Ekrana Bas
+        let cb = data.player.class_bonus;
+        let bonusEl = document.getElementById("class-bonus-text");
+        if(cb > 0) {
+            bonusEl.innerHTML = ` | <span class="bonus-active">⚔️ Sınıf Avantajı: +${cb}</span>`;
+        } else {
+            bonusEl.innerHTML = "";
+        }
+
+        document.getElementById("hero-power").innerText = data.player.total_power;
+        document.getElementById("monster-power").innerText = data.monster.power;
+
+        drawCards(data.player.cards_list);
+        updateEquipment(data.equipment);
+
+        let h_ratio = Math.min((data.player.total_power / 40) * 100, 100);
+        let m_ratio = Math.min((data.monster.power / 40) * 100, 100);
+        document.getElementById("hero-bar").style.width = h_ratio + "%";
+        document.getElementById("monster-bar").style.width = m_ratio + "%";
+
+        if(data.status === "kazandi") {
+            document.getElementById("action-text").innerHTML = "🎉 TEBRİKLER! OYUNU KAZANDI! (Lvl 30) 🎉";
+            document.getElementById("hero-sprite").innerHTML = "🏆";
+            document.getElementById("monster-sprite").innerHTML = "☠️";
+            stopAutoPlay();
+        } else if(data.status === "oldu") {
+            document.getElementById("action-text").innerHTML = "💀 KÖTÜ ŞEYLER OLDU! ÖLDÜN! 💀";
+            document.getElementById("hero-sprite").innerHTML = "👻";
+            stopAutoPlay();
+        } else {
+            document.getElementById("action-text").innerText = "🧠 " + data.action_taken;
+        }
+    }
+
+    async function resetGame() {
+        await fetch('/reset', {method: 'POST'});
+        location.reload();
+    }
+
+    function autoPlay() {
+        let btn = document.getElementById("auto-btn");
+        if(autoPlayInterval) {
+            stopAutoPlay();
+        } else {
+            autoPlayInterval = setInterval(playStep, 1000);
+            btn.style.background = "#f6d365";
+            btn.style.color = "#333";
+            btn.innerText = "Durdur";
+        }
+    }
+
+    function stopAutoPlay() {
+        clearInterval(autoPlayInterval);
+        autoPlayInterval = null;
+        let btn = document.getElementById("auto-btn");
+        btn.style.background = "#4facfe";
+        btn.style.color = "white";
+        btn.innerText = "Oto-Oynat";
+    }
+</script>
+
+</body>
+</html>
