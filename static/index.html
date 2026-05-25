@@ -1,328 +1,631 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <title>Munchkin AI Simülasyonu</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #1a1a2e; color: white; margin: 0; padding: 20px; text-align: center; }
-        .container { max-width: 980px; margin: auto; }
-        .game-board { display: flex; justify-content: space-between; background: #16213e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); margin-bottom: 20px; gap: 20px; }
-        .box { flex: 1; background: #0f3460; padding: 20px; border-radius: 15px; position: relative; }
+<meta charset="UTF-8">
+<title>Munchkin AI — Kapı Tekmeleniyor</title>
+<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold:    #f0c040;
+    --gold2:   #e8a020;
+    --red:     #c0392b;
+    --red2:    #e74c3c;
+    --dark:    #0d0b08;
+    --parch:   #1a160e;
+    --wood:    #2a1e0e;
+    --ink:     #f5e8c8;
+    --dim:     #9a8060;
+    --green:   #27ae60;
+    --teal:    #1abc9c;
+    --purple:  #8e44ad;
+    --border:  #5a3d1a;
+    --shadow:  rgba(0,0,0,0.8);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .sprite-container { display: flex; justify-content: center; align-items: center; height: 110px; margin-bottom: 12px; }
-        .sprite { font-size: 75px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); transition: 0.3s; }
+  body {
+    background: var(--dark);
+    color: var(--ink);
+    font-family: 'Crimson Pro', Georgia, serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(90,40,10,0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(60,20,5,0.4) 0%, transparent 50%);
+  }
 
-        .power-bar-bg { background: #222; width: 100%; height: 22px; border-radius: 11px; overflow: hidden; margin: 12px 0; border: 2px solid #e94560; }
-        .hero-bar-bg { border-color: #4facfe; }
-        .power-bar-fill { height: 100%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-        .blue-fill { background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%); width: 0%; }
-        .red-fill  { background: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%); width: 0%; }
+  header {
+    text-align: center;
+    padding: 24px 20px 16px;
+    border-bottom: 2px solid var(--border);
+    background: linear-gradient(180deg, #1a0e04 0%, transparent 100%);
+    position: relative;
+  }
+  header::before {
+    content: "🚪";
+    position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+    font-size: 36px; opacity: 0.6;
+  }
+  header::after {
+    content: "🚪";
+    position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+    font-size: 36px; opacity: 0.6; transform: translateY(-50%) scaleX(-1);
+  }
+  h1 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(20px, 4vw, 36px);
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(240,192,64,0.5), 2px 2px 0 #000;
+    letter-spacing: 3px;
+  }
+  .subtitle { color: var(--dim); font-size: 14px; margin-top: 4px; font-style: italic; }
 
-        .cards-area { display: flex; justify-content: center; gap: 8px; margin: 12px 0; min-height: 90px; flex-wrap: wrap; }
+  .stats-strip {
+    display: flex; justify-content: center; gap: 0;
+    background: var(--wood);
+    border-bottom: 2px solid var(--border);
+  }
+  .stat-cell {
+    flex: 1; max-width: 140px;
+    text-align: center; padding: 8px 4px;
+    border-right: 1px solid var(--border);
+  }
+  .stat-cell:last-child { border-right: none; }
+  .stat-val { font-family: 'Cinzel Decorative', serif; font-size: 22px; color: var(--gold); display: block; }
+  .stat-lbl { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
 
-        .magic-card {
-            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
-            color: #333; padding: 8px; border-radius: 8px; width: 80px; height: 90px;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid #fff;
-            animation: popIn 0.3s ease-out; text-align: center; position: relative;
-        }
-        .magic-card.upgrade {
-            border: 2px solid #00ffcc;
-            box-shadow: 0 0 12px #00ffcc88, 0 4px 8px rgba(0,0,0,0.5);
-            animation: popIn 0.3s ease-out, upgradeGlow 1.5s ease-in-out infinite;
-        }
-        .magic-card.best-upgrade {
-            border: 3px solid #f6d365;
-            box-shadow: 0 0 16px #f6d36599, 0 4px 8px rgba(0,0,0,0.5);
-            animation: popIn 0.3s ease-out, bestGlow 1s ease-in-out infinite;
-        }
-        @keyframes upgradeGlow { 0%,100%{box-shadow:0 0 8px #00ffcc55,0 4px 8px rgba(0,0,0,0.5)} 50%{box-shadow:0 0 18px #00ffccaa,0 4px 8px rgba(0,0,0,0.5)} }
-        @keyframes bestGlow    { 0%,100%{box-shadow:0 0 10px #f6d36566,0 4px 8px rgba(0,0,0,0.5)} 50%{box-shadow:0 0 22px #f6d365cc,0 4px 8px rgba(0,0,0,0.5)} }
+  .arena {
+    display: grid;
+    grid-template-columns: 1fr 320px 1fr;
+    gap: 16px;
+    padding: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  @media (max-width: 900px) {
+    .arena { grid-template-columns: 1fr; }
+  }
 
-        .card-title { font-size: 10px; font-weight: bold; color: #222; margin-bottom: 2px; line-height: 1.1; }
-        .card-slot  { font-size: 9px; color: #555; margin-bottom: 2px; }
-        .card-power { font-size: 20px; font-weight: bold; color: #d32f2f; }
-        .card-gain  { font-size: 10px; font-weight: bold; color: #00aa77; }
+  .panel {
+    background: var(--parch);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    position: relative;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.5), 0 4px 20px var(--shadow);
+  }
+  .panel::before {
+    content: '';
+    position: absolute; inset: 3px;
+    border: 1px solid rgba(90,61,26,0.3);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .panel-title {
+    font-family: 'Cinzel Decorative', serif;
+    color: var(--gold);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-align: center;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+  }
 
-        @keyframes popIn  { 0%{transform:scale(0)} 100%{transform:scale(1)} }
-        @keyframes shake  { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
-        @keyframes glow   { 0%,100%{opacity:1} 50%{opacity:0.7} }
-        .shake    { animation: shake 0.4s ease; }
-        .win-glow { animation: glow 0.8s ease infinite; }
+  .combatant { text-align: center; padding: 10px 0; }
+  .sprite-wrap {
+    font-size: 72px; line-height: 1; margin: 8px 0; display: block;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.8)); transition: transform 0.15s;
+  }
+  .sprite-wrap.attack { animation: slash 0.4s ease; }
+  .sprite-wrap.flee   { animation: runAway 0.5s ease; }
+  .sprite-wrap.hurt   { animation: stagger 0.4s ease; }
+  @keyframes slash    { 0%{transform:translateX(0)} 30%{transform:translateX(18px) scale(1.15)} 100%{transform:translateX(0)} }
+  @keyframes runAway  { 0%{transform:translateX(0)} 50%{transform:translateX(-30px) rotate(-10deg)} 100%{transform:translateX(0)} }
+  @keyframes stagger  { 0%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(6px)} 100%{transform:translateX(0)} }
+  @keyframes levelUp  { 0%{transform:scale(1)} 50%{transform:scale(1.3)} 100%{transform:scale(1)} }
+  .level-up-anim { animation: levelUp 0.6s ease; }
+  .combatant-name { font-family: 'Cinzel Decorative', serif; font-size: 15px; color: var(--gold); }
+  .combatant-sub  { font-size: 12px; color: var(--dim); font-style: italic; }
 
-        .action-log { background: #111; padding: 14px; border-radius: 10px; font-size: 22px; font-weight: bold; color: #f6d365; margin: 15px 0; min-height: 32px; letter-spacing: 1px; }
-        .agent-mode-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; font-weight: normal; vertical-align: middle; }
-        .badge-qtable    { background: #00ffcc33; color: #00ffcc; border: 1px solid #00ffcc66; }
-        .badge-sezgisel  { background: #f6d36533; color: #f6d365; border: 1px solid #f6d36566; }
+  .power-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+  .power-label { font-size: 11px; color: var(--dim); width: 28px; text-align: right; flex-shrink: 0; }
+  .bar-track {
+    flex: 1; height: 14px; background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border); border-radius: 7px; overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 7px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+  .bar-hero    { background: linear-gradient(90deg, #4facfe, #00f2fe); }
+  .bar-monster { background: linear-gradient(90deg, #ff416c, #ff9a3c); }
+  .power-num { font-family: 'Cinzel Decorative', serif; font-size: 14px; color: var(--gold); width: 28px; flex-shrink:0; }
 
-        .reward-flash { font-size: 13px; margin: 4px 0; min-height: 20px; font-weight: bold; }
-        .reward-pos { color: #00ffcc; }
-        .reward-neg { color: #ff4b2b; }
+  .level-badge {
+    display: inline-block;
+    background: radial-gradient(circle, #f0c040 0%, #a07010 100%);
+    color: #000; font-family: 'Cinzel Decorative', serif; font-size: 20px; font-weight: 700;
+    width: 52px; height: 52px; border-radius: 50%; line-height: 52px; text-align: center;
+    box-shadow: 0 0 12px rgba(240,192,64,0.6), inset 0 2px 4px rgba(255,255,255,0.3);
+    margin: 8px auto;
+  }
+  .level-goal { font-size: 11px; color: var(--dim); }
 
-        .stats-bar { display: flex; justify-content: center; gap: 20px; background: #16213e; padding: 10px 20px; border-radius: 10px; margin-bottom: 15px; font-size: 13px; color: #a9a9b3; flex-wrap: wrap; }
-        .stat-item { text-align: center; }
-        .stat-val  { font-size: 20px; font-weight: bold; color: white; display: block; }
+  .detail-row {
+    display: flex; justify-content: space-between;
+    font-size: 13px; padding: 3px 0;
+    border-bottom: 1px dotted rgba(90,61,26,0.4);
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { color: var(--dim); }
+  .detail-val { color: var(--ink); font-weight: 600; }
+  .detail-val.pos  { color: var(--teal); }
+  .detail-val.neg  { color: var(--red2); }
+  .detail-val.gold { color: var(--gold); }
 
-        button { background: #e94560; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: 0.3s; margin: 5px; font-weight: bold; box-shadow: 0 4px 15px rgba(233,69,96,0.4); }
-        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(233,69,96,0.6); }
-        .btn-play { background: #4facfe; box-shadow: 0 4px 15px rgba(79,172,254,0.4); }
-        .btn-play:hover { background: #00f2fe; }
+  .center-col { display: flex; flex-direction: column; gap: 12px; }
 
-        .speed-ctrl { display: inline-flex; align-items: center; gap: 10px; background: #16213e; padding: 8px 16px; border-radius: 8px; font-size: 13px; color: #a9a9b3; vertical-align: middle; }
-        .speed-ctrl input[type=range] { width: 100px; accent-color: #4facfe; }
+  .action-log {
+    background: rgba(0,0,0,0.6); border: 2px solid var(--border); border-radius: 4px;
+    padding: 14px 16px; text-align: center; min-height: 60px;
+  }
+  .action-text {
+    font-family: 'Cinzel Decorative', serif; font-size: 18px; color: var(--gold);
+    display: block; text-shadow: 0 0 10px rgba(240,192,64,0.4);
+  }
+  .event-text { font-size: 13px; color: var(--ink); font-style: italic; margin-top: 4px; display: block; min-height: 18px; }
+  .agent-badge { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 10px; margin-top: 4px; letter-spacing: 1px; }
+  .badge-q { background: rgba(0,255,200,0.1); color: #00ffc8; border: 1px solid rgba(0,255,200,0.3); }
+  .badge-h { background: rgba(240,192,64,0.1); color: var(--gold); border: 1px solid rgba(240,192,64,0.3); }
 
-        .graphs { background: rgba(0,0,0,0.4); padding: 20px; border-radius: 10px; margin-top: 30px; color: white; border: 1px solid #4facfe; }
-        .graphs img { max-width: 100%; height: auto; border-radius: 5px; border: 2px solid #ccc; background: white; }
-        .bonus-active { color: #00ffcc; font-weight: bold; animation: popIn 0.5s ease-out; }
+  .reward-flash { text-align: center; font-size: 15px; font-weight: 700; min-height: 24px; transition: all 0.3s; }
+  .rew-pos { color: var(--teal); }
+  .rew-neg { color: var(--red2); }
 
-        .equip-panel  { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin-top: 10px; font-size: 13px; text-align: left; }
-        .equip-header { font-weight: bold; border-bottom: 1px solid #4facfe; margin-bottom: 5px; padding-bottom: 5px; }
+  .cards-area {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    justify-content: center; min-height: 80px; padding: 6px 0;
+  }
+  .card {
+    width: 72px; min-height: 88px;
+    background: linear-gradient(160deg, #f6e0a0 0%, #d4a840 100%);
+    border: 2px solid #8a6010; border-radius: 6px; padding: 6px 4px;
+    text-align: center; color: #2a1800; font-size: 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-around;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.6); animation: cardDrop 0.3s ease-out;
+    position: relative; cursor: default;
+  }
+  @keyframes cardDrop { from{transform:translateY(-20px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .card.upgrade { border-color: #00ffc8; box-shadow: 0 0 10px rgba(0,255,200,0.4), 0 3px 8px rgba(0,0,0,0.6); }
+  .card.best {
+    border-color: var(--gold); box-shadow: 0 0 14px rgba(240,192,64,0.6), 0 3px 8px rgba(0,0,0,0.6);
+    animation: cardDrop 0.3s ease-out, bestPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes bestPulse { 0%,100%{box-shadow:0 0 8px rgba(240,192,64,0.3)} 50%{box-shadow:0 0 18px rgba(240,192,64,0.7)} }
+  .card-name { font-size: 9px; font-weight: 700; line-height: 1.2; }
+  .card-slot { font-size: 8px; color: #5a3a00; }
+  .card-pow  { font-size: 22px; font-weight: 900; color: #c0392b; line-height: 1; }
+  .card-gain { font-size: 9px; color: #00880f; font-weight: 700; }
 
-        .upgrade-hint { font-size: 12px; color: #00ffcc; margin: 4px 0; min-height: 16px; }
-    </style>
+  .equip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .equip-slot { background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 3px; padding: 5px 8px; font-size: 11px; }
+  .equip-slot .slot-name { color: var(--dim); font-size: 10px; }
+  .equip-slot .slot-item { color: var(--ink); }
+  .equip-slot.filled { border-color: rgba(240,192,64,0.4); }
+  .equip-slot.filled .slot-item { color: var(--gold); }
+
+  .monster-list { display: flex; flex-direction: column; gap: 8px; }
+  .monster-card {
+    background: rgba(192,0,0,0.12); border: 1px solid rgba(192,0,0,0.4);
+    border-radius: 4px; padding: 8px 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .monster-card.undead  { border-color: rgba(128,0,255,0.5); background: rgba(128,0,100,0.12); }
+  .monster-card.enraged { border-color: rgba(255,100,0,0.6); }
+  .m-emoji { font-size: 32px; }
+  .m-info  { flex: 1; }
+  .m-name  { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .m-sub   { font-size: 11px; color: var(--dim); }
+  .m-pow   { font-family:'Cinzel Decorative',serif; font-size: 20px; color: var(--red2); }
+
+  .controls { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .btn-row  { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: 'Crimson Pro', serif; font-size: 15px; font-weight: 600;
+    padding: 9px 20px; border: none; border-radius: 3px; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.5px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .btn:hover  { transform: translateY(-2px); box-shadow: 0 5px 14px rgba(0,0,0,0.7); }
+  .btn:active { transform: translateY(0); }
+  .btn-play  { background: linear-gradient(180deg, #27ae60, #1e8449); color: #fff; }
+  .btn-auto  { background: linear-gradient(180deg, #2980b9, #1f618d); color: #fff; }
+  .btn-stop  { background: linear-gradient(180deg, #c0392b, #922b21); color: #fff; }
+  .btn-reset { background: linear-gradient(180deg, #5a3d1a, #3d2810); color: var(--gold); border: 1px solid var(--border); }
+
+  .speed-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim); }
+  input[type=range] { accent-color: var(--gold); width: 100px; }
+
+  .log-feed {
+    background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 3px;
+    height: 120px; overflow-y: auto; padding: 6px 10px;
+    font-size: 12px; font-family: 'Crimson Pro', serif;
+  }
+  .log-entry { padding: 2px 0; border-bottom: 1px dotted rgba(90,61,26,0.3); }
+  .log-entry:last-child { border: none; color: var(--gold); }
+
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.5s;
+  }
+  .overlay.show { opacity: 1; pointer-events: all; }
+  .overlay-box {
+    background: var(--parch); border: 3px solid var(--gold); border-radius: 8px;
+    padding: 40px 60px; text-align: center; box-shadow: 0 0 60px rgba(240,192,64,0.3);
+  }
+  .overlay-icon  { font-size: 72px; display: block; margin-bottom: 16px; }
+  .overlay-title { font-family: 'Cinzel Decorative', serif; font-size: 28px; color: var(--gold); }
+  .overlay-sub   { font-size: 16px; color: var(--dim); margin-top: 8px; font-style: italic; }
+  .overlay-btn {
+    margin-top: 20px; font-family: 'Crimson Pro', serif; font-size: 16px; font-weight: 700;
+    padding: 12px 30px; background: linear-gradient(180deg, var(--gold), var(--gold2));
+    color: #000; border: none; border-radius: 3px; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .overlay-btn:hover { transform: translateY(-2px); }
+
+  .progress-wrap  { margin: 6px 0; }
+  .progress-label { font-size: 11px; color: var(--dim); display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .progress-track { height: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
+  .progress-fill  { height: 100%; background: linear-gradient(90deg, var(--gold2), var(--gold)); border-radius: 5px; transition: width 0.5s ease; }
+
+  ::-webkit-scrollbar       { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--dark); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
 </head>
 <body>
-<div class="container">
-    <h1>🚪 Munchkin AI Simülasyonu 🚪</h1>
-    <p style="font-size:16px;color:#a9a9b3;">Kapı Tekmeleniyor... Adım: <span id="step-counter" style="color:white;font-weight:bold;">0</span> | Hedef: 30. Seviye</p>
 
-    <div class="stats-bar">
-        <div class="stat-item"><span class="stat-val" id="stat-wins">0</span>Kazanma</div>
-        <div class="stat-item"><span class="stat-val" id="stat-games">0</span>Oyun</div>
-        <div class="stat-item"><span class="stat-val" id="stat-winrate">—</span>Kazanma %</div>
-        <div class="stat-item"><span class="stat-val" id="stat-steps">0</span>Toplam Adım</div>
+<header>
+  <h1>⚔️ Munchkin AI ⚔️</h1>
+  <p class="subtitle">Q-Learning Ajanı — Kapı Tekmeleyerek 10. Seviye'ye Ulaşmaya Çalışıyor</p>
+</header>
+
+<div class="stats-strip">
+  <div class="stat-cell"><span class="stat-val" id="sWins">0</span><span class="stat-lbl">Zafer</span></div>
+  <div class="stat-cell"><span class="stat-val" id="sGames">0</span><span class="stat-lbl">Oyun</span></div>
+  <div class="stat-cell"><span class="stat-val" id="sWR">—</span><span class="stat-lbl">Oran %</span></div>
+  <div class="stat-cell"><span class="stat-val" id="sSteps">0</span><span class="stat-lbl">Adım</span></div>
+  <div class="stat-cell"><span class="stat-val" id="sEps">1.00</span><span class="stat-lbl">Epsilon</span></div>
+  <div class="stat-cell"><span class="stat-val" id="sQT">0</span><span class="stat-lbl">Q-Durum</span></div>
+</div>
+
+<div class="arena">
+
+  <!-- LEFT: HERO -->
+  <div class="panel">
+    <div class="panel-title">🧙 Kahraman</div>
+    <div class="combatant" id="heroCombatant">
+      <span class="sprite-wrap" id="heroSprite">❓</span>
+      <div class="level-badge" id="heroLevel">1</div>
+      <div class="level-goal">/ 10. Seviye</div>
+      <div class="combatant-name" id="heroName">—</div>
+      <div class="combatant-sub" id="heroRaceClass">—</div>
     </div>
 
-    <div class="game-board">
-        <div class="box">
-            <h2 id="hero-name" style="color:#4facfe;">Kahraman Bekleniyor...</h2>
-            <div class="sprite-container"><div class="sprite" id="hero-sprite">❓</div></div>
-            <h3>Seviye: <span id="hero-lvl">1</span></h3>
-
-            <div class="equip-panel">
-                <div class="equip-header">🎒 Kuşanılmış Eşyalar:</div>
-                <div id="equip-list"><div style="color:#666">Ekipman bekleniyor...</div></div>
-            </div>
-
-            <div style="text-align:left;font-size:13px;margin-top:12px;color:#ddd;">Çantadaki Eşya Kartları:</div>
-            <div class="upgrade-hint" id="upgrade-hint"></div>
-            <div class="cards-area" id="cards-container">
-                <span style="color:#777;margin-top:20px;">Kartlar Çekiliyor...</span>
-            </div>
-
-            <p style="font-size:13px;">✨ Ekipman: +<span id="hero-active-power">0</span> | 🛡️ Zırh: +<span id="hero-def">0</span> <span id="class-bonus-text"></span></p>
-            <div class="power-bar-bg hero-bar-bg"><div class="power-bar-fill blue-fill" id="hero-bar"></div></div>
-            <h3>Toplam Güç: <span id="hero-power">0</span></h3>
-        </div>
-
-        <div class="box">
-            <h2 id="monster-name" style="color:#ff4b2b;">Zindan Boş</h2>
-            <div class="sprite-container"><div class="sprite" id="monster-sprite">🌫️</div></div>
-            <h3>Tehlike!</h3>
-            <p style="font-size:13px;color:#a9a9b3;">Canavar kartı çekildi...</p>
-            <div style="height:190px;"></div>
-            <div class="power-bar-bg"><div class="power-bar-fill red-fill" id="monster-bar"></div></div>
-            <h3>Canavar Seviyesi: <span id="monster-power">0</span></h3>
-        </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Seviye İlerlemesi</span><span id="lvlPct">10%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="lvlBar" style="width:10%"></div></div>
     </div>
 
-    <div class="action-log" id="action-text">Zarlar Atılıyor, Yapay Zeka Karar Bekliyor...</div>
-    <div class="reward-flash" id="reward-display"></div>
-
-    <div style="margin:10px 0;">
-        <button onclick="playStep()" class="btn-play">⚔️ Hamle Yap</button>
-        <button onclick="toggleAutoPlay()" id="auto-btn" class="btn-play">▶ Oto-Oynat</button>
-        <button onclick="resetGame()">🔄 Yeni Oyun</button>
-        <div class="speed-ctrl">
-            <span>Hız:</span>
-            <input type="range" id="speed-slider" min="100" max="2000" value="800" step="100" oninput="updateSpeed(this.value)">
-            <span id="speed-label">0.8s</span>
-        </div>
+    <div class="power-row">
+      <span class="power-label">GÜÇ</span>
+      <div class="bar-track"><div class="bar-fill bar-hero" id="heroBar" style="width:5%"></div></div>
+      <span class="power-num" id="heroPow">—</span>
     </div>
 
-    <div class="graphs">
-        <h3>📊 Yapay Zeka Eğitim Grafikleri</h3>
-        <p>Ajanımızın 10.000 el oyun oynayarak Q-Learning ile nasıl akıllandığını gösteren çok boyutlu eğitim verisi:</p>
-        <img src="/docs/training_results.png" alt="Eğitim grafiği bulunamadı. Lütfen önce train.py çalıştırın.">
+    <div style="margin-top:12px;">
+      <div class="detail-row"><span class="detail-key">Seviye</span><span class="detail-val gold" id="dLevel">1</span></div>
+      <div class="detail-row"><span class="detail-key">Eşya Bonusu</span><span class="detail-val pos" id="dItem">+0</span></div>
+      <div class="detail-row"><span class="detail-key">Sınıf Bonusu</span><span class="detail-val pos" id="dClass">+0</span></div>
+      <div class="detail-row"><span class="detail-key">Irk Bonusu</span><span class="detail-val pos" id="dRace">+0</span></div>
+      <div class="detail-row"><span class="detail-key">Savunma</span><span class="detail-val pos" id="dDef">+0</span></div>
+      <div class="detail-row"><span class="detail-key">Eşya Cezası</span><span class="detail-val neg" id="dPenalty">-0</span></div>
+      <div class="detail-row"><span class="detail-key">Öldürme</span><span class="detail-val gold" id="dKills">0</span></div>
+      <div class="detail-row"><span class="detail-key">Lanet</span><span class="detail-val neg" id="dCurse">0</span></div>
     </div>
+
+    <div style="margin-top:14px;">
+      <div class="panel-title" style="font-size:11px; margin-bottom:8px;">🗡️ EKİPMAN</div>
+      <div class="equip-grid" id="equipGrid">
+        <div class="equip-slot"><div class="slot-name">Kafa</div><div class="slot-item">Boş</div></div>
+        <div class="equip-slot"><div class="slot-name">Gövde</div><div class="slot-item">Boş</div></div>
+        <div class="equip-slot"><div class="slot-name">Sağ El</div><div class="slot-item">Boş</div></div>
+        <div class="equip-slot"><div class="slot-name">Sol El</div><div class="slot-item">Boş</div></div>
+        <div class="equip-slot" style="grid-column:1/-1"><div class="slot-name">Ayaklar</div><div class="slot-item">Boş</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center-col">
+
+    <div class="action-log">
+      <span class="action-text" id="actionText">— Hazır —</span>
+      <span class="event-text" id="eventText">Bir adım atmak için düğmeye bas.</span>
+      <div><span class="agent-badge badge-q" id="modeBadge">Q-TABLE</span></div>
+    </div>
+
+    <div class="reward-flash" id="rewardFlash">⚡ Ödül: —</div>
+
+    <div class="panel" style="padding:12px">
+      <div class="panel-title" style="font-size:11px; margin-bottom:8px;">🎒 HAZİNE KARTLARI</div>
+      <div class="cards-area" id="cardsArea">
+        <div style="color:var(--dim); font-style:italic; font-size:13px; align-self:center;">Henüz kart yok</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="btn-row">
+        <button class="btn btn-play" onclick="playStep()">⚔️ Adım At</button>
+        <button class="btn btn-auto" id="autoBtn" onclick="toggleAuto()">▶ Otomatik</button>
+        <button class="btn btn-reset" onclick="resetGame()">🔄 Yeni Oyun</button>
+      </div>
+      <div class="speed-row">
+        🐢 <input type="range" id="speedSlider" min="50" max="1000" value="400" step="50"> 🐇
+        <span id="speedVal">400ms</span>
+      </div>
+    </div>
+
+    <div class="panel" style="padding:10px">
+      <div class="panel-title" style="font-size:11px; margin-bottom:6px;">📜 SAVAŞ GÜNLÜĞÜ</div>
+      <div class="log-feed" id="logFeed">
+        <div class="log-entry">Oyun başladı. Kapıyı tekmelemeye hazır...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: MONSTERS -->
+  <div class="panel">
+    <div class="panel-title">👹 Düşmanlar</div>
+    <div class="monster-list" id="monsterList">
+      <div style="color:var(--dim); font-style:italic; text-align:center;">Yükleniyor...</div>
+    </div>
+
+    <div class="power-row" style="margin-top:14px;">
+      <span class="power-label">GÜÇ</span>
+      <div class="bar-track"><div class="bar-fill bar-monster" id="monBar" style="width:5%"></div></div>
+      <span class="power-num" id="monPow">—</span>
+    </div>
+
+    <div style="margin-top:12px; margin-bottom:14px;">
+      <div class="detail-row"><span class="detail-key">Canavar Gücü</span><span class="detail-val neg" id="mPow">—</span></div>
+      <div class="detail-row"><span class="detail-key">Kaçma Denemesi</span><span class="detail-val" id="mFlee">0</span></div>
+      <div class="detail-row"><span class="detail-key">Adım</span><span class="detail-val" id="mStep">0</span></div>
+    </div>
+
+    <div style="text-align:center; margin: 8px 0;">
+      <div style="font-family:'Cinzel Decorative',serif; font-size:28px; color:var(--gold); text-shadow: 0 0 20px rgba(240,192,64,0.5);">VS</div>
+      <div id="vsResult" style="font-size:13px; color:var(--dim); margin-top:4px;">—</div>
+    </div>
+
+    <div class="panel" style="background:rgba(0,0,0,0.3); border-color:rgba(90,61,26,0.5); margin-top:8px; padding:10px;">
+      <div class="panel-title" style="font-size:10px; margin-bottom:6px;">📖 AKTİF MEKANİKLER</div>
+      <div style="font-size:11px; color:var(--dim); line-height:1.7;">
+        ⚔️ Saldırı — Güç farkı karşılaştırması<br>
+        🏃 Kaçış — Zar: 5+ başarılı (PDF)<br>
+        🤝 Yardım — +3 güç, yarı hazine<br>
+        🔮 Lanet — %8 kapı kartı şansı<br>
+        ⚠️ Avare Canavar — %7 ek düşman<br>
+        💀 Kötü Şey — Kaçamazsan çarpar
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- WIN/LOSE OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="overlay-box">
+    <span class="overlay-icon" id="overlayIcon">🏆</span>
+    <div class="overlay-title" id="overlayTitle">Zafer!</div>
+    <div class="overlay-sub" id="overlaySub">10. Seviye'ye ulaştın!</div>
+    <button class="overlay-btn" onclick="closeOverlay()">Devam Et →</button>
+  </div>
 </div>
 
 <script>
-    let autoPlayInterval = null;
-    let autoPlayDelay = 800;
-    let totalGames = 0, totalWins = 0, totalSteps = 0;
-    let autoRestart = false;
+let autoInterval = null;
+let isRunning    = false;
+const MAX_LOG    = 50;
 
-    function updateSpeed(val) {
-        autoPlayDelay = parseInt(val);
-        document.getElementById('speed-label').textContent = (autoPlayDelay / 1000).toFixed(1) + 's';
-        if (autoPlayInterval) { clearInterval(autoPlayInterval); autoPlayInterval = setInterval(playStep, autoPlayDelay); }
-    }
+const speedSlider = document.getElementById('speedSlider');
+speedSlider.addEventListener('input', () => {
+  document.getElementById('speedVal').textContent = speedSlider.value + 'ms';
+  if (autoInterval) {
+    clearInterval(autoInterval);
+    autoInterval = setInterval(playStep, parseInt(speedSlider.value));
+  }
+});
 
-    function drawCards(cardsArray, bestIdx) {
-        const container = document.getElementById("cards-container");
-        container.innerHTML = "";
-        if (!cardsArray || cardsArray.length === 0) {
-            container.innerHTML = "<span style='color:#777;margin-top:20px;'>Çanta Boş</span>";
-            document.getElementById("upgrade-hint").textContent = "";
-            return;
-        }
-        let upgradeCount = 0;
-        for (let i = 0; i < cardsArray.length; i++) {
-            const c = cardsArray[i];
-            let cls = "magic-card";
-            let gainHtml = "";
-            if (i === bestIdx) {
-                cls += " best-upgrade";
-                gainHtml = `<div class="card-gain">▲+${c.gain} EN İYİ</div>`;
-                upgradeCount++;
-            } else if (c.is_upgrade) {
-                cls += " upgrade";
-                gainHtml = `<div class="card-gain">▲+${c.gain}</div>`;
-                upgradeCount++;
-            }
-            container.innerHTML += `
-            <div class="${cls}">
-                <div class="card-title">${c.name}</div>
-                <div class="card-slot">${c.slot}</div>
-                <div class="card-power">+${c.power}</div>
-                ${gainHtml}
-            </div>`;
-        }
-        const hint = document.getElementById("upgrade-hint");
-        if (upgradeCount > 0) {
-            hint.textContent = `✨ ${upgradeCount} upgrade kartı mevcut — AI en iyisini seçiyor`;
-        } else {
-            hint.textContent = "⚠️ Çantada upgrade yok";
-        }
-    }
+const CLASS_EMOJI = { "Savaşçı":"🪓", "Büyücü":"🧙", "Hırsız":"🗡️", "Keşiş":"📜" };
+const RACE_EMOJI  = { "İnsan":"👤", "Elf":"🧝", "Cüce":"⛏️", "Buçukluk":"🐾" };
 
-    function updateEquipment(equipData) {
-        if (!equipData) return;
-        const list = document.getElementById("equip-list");
-        list.innerHTML = "";
-        for (const [slot, item_desc] of Object.entries(equipData)) {
-            if (item_desc !== "Boş") {
-                list.innerHTML += `<div>🔹 ${slot}: <span style="color:#f6d365">${item_desc}</span></div>`;
-            } else {
-                list.innerHTML += `<div style="color:#555">🔹 ${slot}: Boş</div>`;
-            }
-        }
-    }
+function getHeroEmoji(cls) {
+  return CLASS_EMOJI[cls] || "⚔️";
+}
 
-    function showReward(reward) {
-        const el = document.getElementById('reward-display');
-        el.innerHTML = reward > 0 ? `<span class="reward-pos">+${reward} puan</span>`
-                     : reward < 0 ? `<span class="reward-neg">${reward} puan</span>` : '';
-        if (reward !== 0) setTimeout(() => { el.innerHTML = ''; }, 1500);
-    }
+async function resetGame() {
+  stopAuto();
+  const r = await fetch('/reset', { method: 'POST' });
+  const d = await r.json();
+  addLog("🔄 Yeni oyun başladı!");
+  document.getElementById('actionText').textContent = '— Hazır —';
+  document.getElementById('eventText').textContent  = 'Bir adım atmak için düğmeye bas.';
+  updateUI(d.status);
+}
 
-    function updateStats() {
-        document.getElementById('stat-games').textContent = totalGames;
-        document.getElementById('stat-wins').textContent = totalWins;
-        document.getElementById('stat-steps').textContent = totalSteps;
-        if (totalGames > 0)
-            document.getElementById('stat-winrate').textContent = Math.round(totalWins / totalGames * 100) + '%';
-    }
+async function playStep() {
+  const r = await fetch('/play-step');
+  const d = await r.json();
 
-    async function playStep() {
-        const response = await fetch('/play-step');
-        const data = await response.json();
-        if (!data.player) { stopAutoPlay(); return; }
+  document.getElementById('actionText').textContent = d.action;
+  document.getElementById('eventText').textContent  = d.event || '';
+  document.getElementById('modeBadge').textContent  = d.agent_mode === 'q-table' ? 'Q-TABLE' : 'SEZGİSEL';
+  document.getElementById('modeBadge').className    = d.agent_mode === 'q-table' ? 'agent-badge badge-q' : 'agent-badge badge-h';
 
-        totalSteps++;
-        updateStats();
+  const rFlash = document.getElementById('rewardFlash');
+  rFlash.textContent = `⚡ Ödül: ${d.reward > 0 ? '+' : ''}${d.reward}`;
+  rFlash.className   = 'reward-flash ' + (d.reward >= 0 ? 'rew-pos' : 'rew-neg');
 
-        document.getElementById("hero-name").innerText = data.hero_info.name;
-        document.getElementById("hero-sprite").innerText = data.hero_info.emoji;
-        document.getElementById("monster-name").innerText = data.monster_info.name;
-        document.getElementById("monster-sprite").innerText = data.monster_info.emoji;
-        document.getElementById("step-counter").innerText = data.step;
-        document.getElementById("hero-lvl").innerText = data.player.level;
-        document.getElementById("hero-active-power").innerText = data.player.active_card_power;
-        document.getElementById("hero-def").innerText = data.player.def_bonus;
+  if (d.stats) {
+    document.getElementById('sWins').textContent  = d.stats.wins;
+    document.getElementById('sGames').textContent = d.stats.games;
+    document.getElementById('sWR').textContent    = d.stats.win_rate;
+    document.getElementById('sSteps').textContent = d.stats.total_steps;
+    document.getElementById('sEps').textContent   = d.stats.epsilon?.toFixed(3) || '—';
+  }
 
-        // YENİ: Sınıf Avantajı ve Eşya Dezavantajı arayüze eklendi
-        let cb = data.player.class_bonus;
-        let penalty = data.player.item_penalty || 0;
-        let penaltyHtml = penalty > 0 ? ` | <span style="color:#ff4b2b;font-weight:bold;animation:popIn 0.5s ease-out;">⚠️ Dezavantaj: -${penalty}</span>` : "";
+  addLog(`[${d.step}] ${d.action} ${d.event || ''}`);
+  updateUI(d.game_status);
 
-        document.getElementById("class-bonus-text").innerHTML =
-            (cb > 0 ? ` | <span class="bonus-active">⚔️ Sınıf Avantajı: +${cb}</span>` : "") + penaltyHtml;
+  const aid = d.action_id;
+  const sp  = document.getElementById('heroSprite');
+  sp.className = 'sprite-wrap ' + (aid===0?'attack': aid===1?'flee': aid===4?'attack':'');
+  setTimeout(()=> sp.className = 'sprite-wrap ' + (d.level_up?'level-up-anim':''), 500);
 
-        document.getElementById("hero-power").innerText = data.player.total_power;
-        document.getElementById("monster-power").innerText = data.monster.power;
+  if (d.status === 'kazandi') showOverlay(true,  d.game_status);
+  if (d.status === 'oldu')    showOverlay(false, d.game_status);
+}
 
-        drawCards(data.player.cards_list, data.player.best_card_idx);
-        updateEquipment(data.equipment);
-        showReward(data.reward);
+function updateUI(gs) {
+  if (!gs) return;
 
-        document.getElementById("hero-bar").style.width = Math.min((data.player.total_power / 40) * 100, 100) + "%";
-        document.getElementById("monster-bar").style.width = Math.min((data.monster.power / 40) * 100, 100) + "%";
+  document.getElementById('heroSprite').textContent    = getHeroEmoji(gs.hero_class);
+  document.getElementById('heroName').textContent      = gs.hero_class;
+  document.getElementById('heroRaceClass').textContent = `${gs.hero_race} — Seviye ${gs.player_level}`;
+  document.getElementById('heroLevel').textContent     = gs.player_level;
 
-        let modeHtml = data.agent_mode === 'q-table'
-            ? '<span class="agent-mode-badge badge-qtable">🧠 Q-Table</span>'
-            : '<span class="agent-mode-badge badge-sezgisel">💡 Sezgisel</span>';
+  const lvlPct = Math.round((gs.player_level / 10) * 100);
+  document.getElementById('lvlBar').style.width = lvlPct + '%';
+  document.getElementById('lvlPct').textContent  = lvlPct + '%';
 
-        if (data.status === "kazandi") {
-            document.getElementById("action-text").innerHTML = "🎉 TEBRİKLER! OYUNU KAZANDI! (Lvl 30) 🎉";
-            document.getElementById("hero-sprite").innerText = "🏆";
-            document.getElementById("monster-sprite").innerText = "☠️";
-            document.getElementById("hero-sprite").classList.add('win-glow');
-            totalWins++; totalGames++; updateStats(); stopAutoPlay();
-            setTimeout(() => resetAutoIfActive(), 2000);
-        } else if (data.status === "oldu") {
-            document.getElementById("action-text").innerHTML = "💀 KÖTÜ ŞEYLER OLDU! ÖLDÜN! 💀";
-            document.getElementById("hero-sprite").innerText = "👻";
-            document.getElementById("hero-sprite").classList.add('shake');
-            totalGames++; updateStats(); stopAutoPlay();
-            setTimeout(() => resetAutoIfActive(), 1500);
-        } else {
-            document.getElementById("action-text").innerHTML = "🧠 " + data.action_taken + modeHtml;
-        }
-    }
+  const maxPow = 30;
+  document.getElementById('heroBar').style.width = Math.min(100, gs.player_power / maxPow * 100) + '%';
+  document.getElementById('heroPow').textContent  = gs.player_power;
 
-    async function resetAutoIfActive() {
-        if (!autoRestart) return;
-        await fetch('/reset', { method: 'POST' });
-        document.getElementById("hero-sprite").classList.remove('shake', 'win-glow');
-        autoPlayInterval = setInterval(playStep, autoPlayDelay);
-        updateAutoBtn(true);
-    }
+  document.getElementById('dLevel').textContent   = gs.player_level;
+  document.getElementById('dItem').textContent    = '+' + gs.active_power;
+  document.getElementById('dClass').textContent   = '+' + gs.class_bonus;
+  document.getElementById('dRace').textContent    = '+' + gs.race_bonus;
+  document.getElementById('dDef').textContent     = '+' + gs.defense_bonus;
+  document.getElementById('dPenalty').textContent = '-' + gs.item_penalty;
+  document.getElementById('dKills').textContent   = gs.total_kills;
+  document.getElementById('dCurse').textContent   = gs.curse_events;
 
-    async function resetGame() {
-        stopAutoPlay();
-        await fetch('/reset', { method: 'POST' });
-        document.getElementById("action-text").innerText = "Zarlar Atılıyor, Yapay Zeka Karar Bekliyor...";
-        document.getElementById("hero-sprite").innerText = "❓";
-        document.getElementById("hero-sprite").classList.remove('shake', 'win-glow');
-        document.getElementById("monster-sprite").innerText = "🌫️";
-        document.getElementById("step-counter").innerText = "0";
-        document.getElementById("reward-display").innerHTML = "";
-        document.getElementById("upgrade-hint").textContent = "";
-        document.getElementById("cards-container").innerHTML = "<span style='color:#777;margin-top:20px;'>Kartlar Çekiliyor...</span>";
-        document.getElementById("equip-list").innerHTML = "<div style='color:#666'>Ekipman bekleniyor...</div>";
-        document.getElementById("hero-bar").style.width = "0%";
-        document.getElementById("monster-bar").style.width = "0%";
-        document.getElementById("class-bonus-text").innerHTML = "";
-    }
+  const slots = ['Kafa','Gövde','Sağ El','Sol El','Ayaklar'];
+  const eg = document.getElementById('equipGrid');
+  let html = '';
+  for (const k of slots) {
+    const v      = gs.equipment[k] || 'Boş';
+    const filled = v !== 'Boş';
+    html += `<div class="equip-slot ${filled?'filled':''}" ${k==='Ayaklar'?'style="grid-column:1/-1"':''}>
+      <div class="slot-name">${k}</div><div class="slot-item">${v}</div>
+    </div>`;
+  }
+  eg.innerHTML = html;
 
-    function updateAutoBtn(on) {
-        const btn = document.getElementById("auto-btn");
-        btn.style.background = on ? "#f6d365" : "#4facfe";
-        btn.style.color = on ? "#333" : "white";
-        btn.innerText = on ? "⏸ Durdur" : "▶ Oto-Oynat";
-    }
+  const ml = document.getElementById('monsterList');
+  if (gs.monsters && gs.monsters.length) {
+    ml.innerHTML = gs.monsters.map(m => `
+      <div class="monster-card ${m.undead?'undead':''} ${m.enraged?'enraged':''}">
+        <span class="m-emoji">${m.emoji}</span>
+        <div class="m-info">
+          <div class="m-name">${m.name} ${m.undead?'💀':''}</div>
+          <div class="m-sub">Kötü Şey: ${m.bad_thing} | 💎${m.treasures}</div>
+        </div>
+        <span class="m-pow">${m.power}</span>
+      </div>`).join('');
+  }
 
-    function toggleAutoPlay() {
-        if (autoPlayInterval) { autoRestart = false; stopAutoPlay(); }
-        else { autoRestart = true; autoPlayInterval = setInterval(playStep, autoPlayDelay); updateAutoBtn(true); }
-    }
+  const mp = gs.monster_power;
+  document.getElementById('monBar').style.width = Math.min(100, mp / maxPow * 100) + '%';
+  document.getElementById('monPow').textContent  = mp;
+  document.getElementById('mPow').textContent    = mp;
+  document.getElementById('mFlee').textContent   = gs.flee_attempts;
+  document.getElementById('mStep').textContent   = gs.steps;
 
-    function stopAutoPlay() {
-        clearInterval(autoPlayInterval); autoPlayInterval = null; updateAutoBtn(false);
-    }
+  const diff = gs.player_power - gs.monster_power;
+  const vsEl = document.getElementById('vsResult');
+  if (diff > 0) { vsEl.textContent = `✅ Kahraman önde (+${diff})`; vsEl.style.color = '#27ae60'; }
+  else if (diff === 0) { vsEl.textContent = `⚖️ Eşit güç`; vsEl.style.color = '#f0c040'; }
+  else { vsEl.textContent = `❌ Canavar önde (${diff})`; vsEl.style.color = '#e74c3c'; }
+
+  const ca = document.getElementById('cardsArea');
+  if (gs.treasure_cards && gs.treasure_cards.length) {
+    ca.innerHTML = gs.treasure_cards.map(c => `
+      <div class="card ${c.is_best?'best':c.is_upgrade?'upgrade':''}">
+        <div class="card-name">${c.name}</div>
+        <div class="card-slot">${c.slot}</div>
+        <div class="card-pow">${c.power}</div>
+        ${c.is_upgrade ? `<div class="card-gain">+${c.gain}⬆</div>` : ''}
+      </div>`).join('');
+  } else {
+    ca.innerHTML = '<div style="color:var(--dim);font-style:italic;font-size:13px;align-self:center;">Kart yok</div>';
+  }
+}
+
+function addLog(msg) {
+  const feed = document.getElementById('logFeed');
+  const el   = document.createElement('div');
+  el.className  = 'log-entry';
+  el.textContent = msg;
+  feed.appendChild(el);
+  while (feed.children.length > MAX_LOG) feed.removeChild(feed.firstChild);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function toggleAuto() {
+  if (isRunning) stopAuto(); else startAuto();
+}
+
+function startAuto() {
+  isRunning = true;
+  document.getElementById('autoBtn').textContent = '⏸ Durdur';
+  document.getElementById('autoBtn').className   = 'btn btn-stop';
+  autoInterval = setInterval(playStep, parseInt(speedSlider.value));
+}
+
+function stopAuto() {
+  isRunning = false;
+  clearInterval(autoInterval);
+  autoInterval = null;
+  document.getElementById('autoBtn').textContent = '▶ Otomatik';
+  document.getElementById('autoBtn').className   = 'btn btn-auto';
+}
+
+function showOverlay(won, gs) {
+  stopAuto();
+  const icon  = document.getElementById('overlayIcon');
+  const title = document.getElementById('overlayTitle');
+  const sub   = document.getElementById('overlaySub');
+  if (won) {
+    icon.textContent  = '🏆';
+    title.textContent = 'ZAFER!';
+    sub.textContent   = `10. Seviye'ye ulaşıldı! ${gs.total_kills} canavar öldürüldü, ${gs.steps} adımda!`;
+  } else {
+    icon.textContent  = '💀';
+    title.textContent = 'ÖLÜM!';
+    sub.textContent   = `Seviye ${gs.player_level}'de yenildi. ${gs.total_kills} canavar öldürülmüştü.`;
+  }
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeOverlay() {
+  document.getElementById('overlay').classList.remove('show');
+}
+
+resetGame();
 </script>
 </body>
 </html>
