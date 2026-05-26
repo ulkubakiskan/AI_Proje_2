@@ -4,10 +4,12 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="82c26709-e32b-4d17-80da-716c9f97b261" name="Changes" comment="Eşya eklemesi yapıldı. Bazı eşyaların bazı canavarlara karşı dezavantajları oluşturuldu. Roller ve eşyaların bir arada öğrenilmesi sağlandı">
-      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/train.py" afterDir="false" />
+    <list default="true" id="82c26709-e32b-4d17-80da-716c9f97b261" name="Changes" comment="Oyun mantığı tam olarak entegre edildi.">
+      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/docs/ai_final_report.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/docs/ai_final_report.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/docs/milestone_results.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/docs/milestone_results.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/docs/training_performance_graph.png" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/docs/training_performance_graph.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/models/q_table.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/models/q_table.pkl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/static/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/static/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -157,7 +159,15 @@
       <option name="project" value="LOCAL" />
       <updated>1779573519882</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Oyun mantığı tam olarak entegre edildi.">
+      <option name="closed" value="true" />
+      <created>1779738449864</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1779738449864</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -188,7 +198,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Eşya eklemesi yapıldı. Bazı eşyaların bazı canavarlara karşı dezavantajları oluşturuldu. Roller ve eşyaların bir arada öğrenilmesi sağlandı" />
-    <option name="LAST_COMMIT_MESSAGE" value="Eşya eklemesi yapıldı. Bazı eşyaların bazı canavarlara karşı dezavantajları oluşturuldu. Roller ve eşyaların bir arada öğrenilmesi sağlandı" />
+    <MESSAGE value="Oyun mantığı tam olarak entegre edildi." />
+    <option name="LAST_COMMIT_MESSAGE" value="Oyun mantığı tam olarak entegre edildi." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -200,7 +211,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/../Ai Proje 2/train.py</url>
-          <line>31</line>
+          <line>38</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
       </breakpoints>
