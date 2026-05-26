@@ -2,7 +2,7 @@
         MUNCHKIN AI EĞİTİM ÖZET RAPORU            
 ==================================================
 Toplam Eğitim Bölümü (Episode): 5000
-Toplam Başarılı Kazanma (Level 10): 2798 / 5000
-Genel Başarı Yüzdesi: %55.96
-Yapay Zekanın Keşfettiği Durum Sayısı: 644
+Toplam Başarılı Kazanma (Level 10): 2883 / 5000
+Genel Başarı Yüzdesi: %57.66
+Yapay Zekanın Keşfettiği Durum Sayısı: 631
 ==================================================

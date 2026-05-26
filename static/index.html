@@ -162,6 +162,21 @@
   .detail-val.neg  { color: var(--red2); }
   .detail-val.gold { color: var(--gold); }
 
+  .cards-panel {
+    background: var(--parch);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.5), 0 4px 20px var(--shadow);
+    height: 162px !important;
+    min-height: 162px !important;
+    max-height: 162px !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    box-sizing: border-box;
+  }
+
   .center-col { display: flex; flex-direction: column; gap: 12px; }
 
   .action-log {
@@ -182,17 +197,28 @@
   .rew-neg { color: var(--red2); }
 
   .cards-area {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    justify-content: center; min-height: 80px; padding: 6px 0;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 6px 2px;
+    align-items: center;
+    height: 116px;
+    min-height: 116px;
+    max-height: 116px;
   }
+  .cards-area::-webkit-scrollbar { height: 4px; }
+  .cards-area::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 2px; }
+  .cards-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   .card {
-    width: 72px; min-height: 88px;
+    width: 72px; height: 100px; min-height: 100px; max-height: 100px;
     background: linear-gradient(160deg, #f6e0a0 0%, #d4a840 100%);
     border: 2px solid #8a6010; border-radius: 6px; padding: 6px 4px;
     text-align: center; color: #2a1800; font-size: 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: space-around;
     box-shadow: 0 3px 8px rgba(0,0,0,0.6); animation: cardDrop 0.3s ease-out;
-    position: relative; cursor: default;
+    position: relative; cursor: default; flex-shrink: 0;
   }
   @keyframes cardDrop { from{transform:translateY(-20px);opacity:0} to{transform:translateY(0);opacity:1} }
   .card.upgrade { border-color: #00ffc8; box-shadow: 0 0 10px rgba(0,255,200,0.4), 0 3px 8px rgba(0,0,0,0.6); }
@@ -278,7 +304,43 @@
   .progress-track { height: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
   .progress-fill  { height: 100%; background: linear-gradient(90deg, var(--gold2), var(--gold)); border-radius: 5px; transition: width 0.5s ease; }
 
-  ::-webkit-scrollbar       { width: 4px; }
+  .sparkline-wrap {
+    background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+    border-radius: 3px; padding: 6px 8px; margin-top: 8px;
+  }
+  .sparkline-label { font-size: 10px; color: var(--dim); margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+  canvas#winChart { width: 100%; height: 40px; display: block; }
+
+  .action-stats {
+    display: flex; justify-content: space-around; gap: 4px;
+    background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+    border-radius: 3px; padding: 6px 4px; margin-top: 4px;
+  }
+  .act-stat { text-align: center; }
+  .act-stat .av { font-family: 'Cinzel Decorative', serif; font-size: 15px; color: var(--gold); }
+  .act-stat .al { font-size: 9px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .cards-panel-title {
+    font-family: 'Cinzel Decorative', serif;
+    color: var(--gold); font-size: 11px; letter-spacing: 2px;
+    text-align: center; margin-bottom: 8px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border); text-transform: uppercase;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-count-badge {
+    background: rgba(240,192,64,0.15); border: 1px solid rgba(240,192,64,0.4);
+    color: var(--gold); font-size: 10px; padding: 1px 8px; border-radius: 10px;
+    font-family: 'Crimson Pro', serif;
+  }
+
+  .vs-bar-wrap { margin: 4px 0 8px; }
+  .vs-bar-track {
+    height: 8px; background: rgba(0,0,0,0.5); border: 1px solid var(--border);
+    border-radius: 4px; overflow: hidden; position: relative;
+  }
+  .vs-bar-hero    { position: absolute; left: 0; top: 0; height: 100%; background: linear-gradient(90deg,#4facfe,#00f2fe); border-radius: 4px 0 0 4px; transition: width 0.6s ease; }
+  .vs-bar-monster { position: absolute; right: 0; top: 0; height: 100%; background: linear-gradient(90deg,#ff9a3c,#ff416c); border-radius: 0 4px 4px 0; transition: width 0.6s ease; }
+  .vs-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); margin-bottom: 2px; }
   ::-webkit-scrollbar-track { background: var(--dark); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 </style>
@@ -357,10 +419,13 @@
 
     <div class="reward-flash" id="rewardFlash">⚡ Ödül: —</div>
 
-    <div class="panel" style="padding:12px">
-      <div class="panel-title" style="font-size:11px; margin-bottom:8px;">🎒 HAZİNE KARTLARI</div>
+    <div class="cards-panel">
+      <div class="cards-panel-title">
+        <span>🎒 Hazine Kartları</span>
+        <span class="card-count-badge" id="cardCountBadge">0 kart</span>
+      </div>
       <div class="cards-area" id="cardsArea">
-        <div style="color:var(--dim); font-style:italic; font-size:13px; align-self:center;">Henüz kart yok</div>
+        <div style="color:var(--dim); font-style:italic; font-size:13px; align-self:center; margin:auto;">Henüz kart yok</div>
       </div>
     </div>
 
@@ -381,6 +446,18 @@
       <div class="log-feed" id="logFeed">
         <div class="log-entry">Oyun başladı. Kapıyı tekmelemeye hazır...</div>
       </div>
+    </div>
+
+    <div class="action-stats">
+      <div class="act-stat"><div class="av" id="aAttack">0</div><div class="al">⚔️ Saldırı</div></div>
+      <div class="act-stat"><div class="av" id="aFlee">0</div><div class="al">🏃 Kaçış</div></div>
+      <div class="act-stat"><div class="av" id="aHelp">0</div><div class="al">🤝 Yardım</div></div>
+      <div class="act-stat"><div class="av" id="aLoot">0</div><div class="al">💎 Yağma</div></div>
+    </div>
+
+    <div class="sparkline-wrap">
+      <div class="sparkline-label">📈 Kazanma Oranı Trendi</div>
+      <canvas id="winChart" width="280" height="40"></canvas>
     </div>
 
   </div>
@@ -406,6 +483,13 @@
 
     <div style="text-align:center; margin: 8px 0;">
       <div style="font-family:'Cinzel Decorative',serif; font-size:28px; color:var(--gold); text-shadow: 0 0 20px rgba(240,192,64,0.5);">VS</div>
+      <div class="vs-bar-wrap">
+        <div class="vs-labels"><span>🧙 Kahraman</span><span>👹 Canavar</span></div>
+        <div class="vs-bar-track">
+          <div class="vs-bar-hero" id="vsBarHero" style="width:50%"></div>
+          <div class="vs-bar-monster" id="vsBarMon" style="width:50%"></div>
+        </div>
+      </div>
       <div id="vsResult" style="font-size:13px; color:var(--dim); margin-top:4px;">—</div>
     </div>
 
@@ -438,6 +522,8 @@
 let autoInterval = null;
 let isRunning    = false;
 const MAX_LOG    = 50;
+const winHistory = [];
+const actionCounts = { attack: 0, flee: 0, help: 0, loot: 0 };
 
 const speedSlider = document.getElementById('speedSlider');
 speedSlider.addEventListener('input', () => {
@@ -455,8 +541,50 @@ function getHeroEmoji(cls) {
   return CLASS_EMOJI[cls] || "⚔️";
 }
 
+function drawSparkline() {
+  const canvas = document.getElementById('winChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  if (winHistory.length < 2) return;
+  const data = winHistory.slice(-40);
+  const step = w / (data.length - 1);
+  ctx.beginPath();
+  ctx.strokeStyle = '#f0c040';
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = 'rgba(240,192,64,0.4)';
+  ctx.shadowBlur = 4;
+  data.forEach((v, i) => {
+    const x = i * step;
+    const y = h - (v / 100) * h;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  // Fill area
+  ctx.lineTo((data.length - 1) * step, h);
+  ctx.lineTo(0, h);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(240,192,64,0.08)';
+  ctx.fill();
+}
+
+function updateActionStats(actionId) {
+  if (actionId === 0) actionCounts.attack++;
+  else if (actionId === 1) actionCounts.flee++;
+  else if (actionId === 2 || actionId === 3) actionCounts.help++;
+  else actionCounts.loot++;
+  document.getElementById('aAttack').textContent = actionCounts.attack;
+  document.getElementById('aFlee').textContent   = actionCounts.flee;
+  document.getElementById('aHelp').textContent   = actionCounts.help;
+  document.getElementById('aLoot').textContent   = actionCounts.loot;
+}
+
+
 async function resetGame() {
   stopAuto();
+  actionCounts.attack = actionCounts.flee = actionCounts.help = actionCounts.loot = 0;
+  ['aAttack','aFlee','aHelp','aLoot'].forEach(id => document.getElementById(id).textContent = '0');
   const r = await fetch('/reset', { method: 'POST' });
   const d = await r.json();
   addLog("🔄 Yeni oyun başladı!");
@@ -484,7 +612,12 @@ async function playStep() {
     document.getElementById('sWR').textContent    = d.stats.win_rate;
     document.getElementById('sSteps').textContent = d.stats.total_steps;
     document.getElementById('sEps').textContent   = d.stats.epsilon?.toFixed(3) || '—';
+    document.getElementById('sQT').textContent    = d.stats.q_states || '—';
+    const wr = parseFloat(d.stats.win_rate);
+    if (!isNaN(wr)) { winHistory.push(wr); drawSparkline(); }
   }
+
+  updateActionStats(d.action_id);
 
   addLog(`[${d.step}] ${d.action} ${d.event || ''}`);
   updateUI(d.game_status);
@@ -561,8 +694,18 @@ function updateUI(gs) {
   else if (diff === 0) { vsEl.textContent = `⚖️ Eşit güç`; vsEl.style.color = '#f0c040'; }
   else { vsEl.textContent = `❌ Canavar önde (${diff})`; vsEl.style.color = '#e74c3c'; }
 
+  const totalPow = (gs.player_power + gs.monster_power) || 1;
+  const heroPct  = Math.round((gs.player_power / totalPow) * 100);
+  const monPct   = 100 - heroPct;
+  const vsHero = document.getElementById('vsBarHero');
+  const vsMon  = document.getElementById('vsBarMon');
+  if (vsHero) vsHero.style.width = heroPct + '%';
+  if (vsMon)  vsMon.style.width  = monPct  + '%';
+
   const ca = document.getElementById('cardsArea');
+  const badge = document.getElementById('cardCountBadge');
   if (gs.treasure_cards && gs.treasure_cards.length) {
+    if (badge) badge.textContent = gs.treasure_cards.length + ' kart';
     ca.innerHTML = gs.treasure_cards.map(c => `
       <div class="card ${c.is_best?'best':c.is_upgrade?'upgrade':''}">
         <div class="card-name">${c.name}</div>
@@ -571,7 +714,8 @@ function updateUI(gs) {
         ${c.is_upgrade ? `<div class="card-gain">+${c.gain}⬆</div>` : ''}
       </div>`).join('');
   } else {
-    ca.innerHTML = '<div style="color:var(--dim);font-style:italic;font-size:13px;align-self:center;">Kart yok</div>';
+    if (badge) badge.textContent = '0 kart';
+    ca.innerHTML = '<div style="color:var(--dim);font-style:italic;font-size:13px;align-self:center;margin:auto;">Kart yok</div>';
   }
 }
 
