@@ -10,7 +10,7 @@ class QLearningAgent:
     - Durum özellik çıkarımı
     """
     def __init__(self, action_space_size=5, learning_rate=0.1, discount_factor=0.95,
-                 epsilon=1.0, epsilon_decay=0.9975, min_epsilon=0.01):
+                 epsilon=1.0, epsilon_decay=0.9995, min_epsilon=0.01):
         self.action_space_size = action_space_size
         self.q_table           = {}
         self.lr                = learning_rate
@@ -35,7 +35,7 @@ class QLearningAgent:
             race_idx = 0  # varsayılan değer
 
         return (
-            max(-6, min(6, power_diff)),   # güç farkı
+            max(-10, min(10, power_diff)),   # güç farkı
             min(num_cards, 4),             # el kartı sayısı (max 4)
             min(potential_upg, 5),         # en iyi yükseltme kazancı
             def_bonus > 0,                 # savunma aktif mi
@@ -45,6 +45,7 @@ class QLearningAgent:
     def choose_action(self, state, env=None):
         feats     = self.extract_features(state)
         num_cards = state[1]
+        power_diff = state[8] if len(state) == 9 else state[7]
 
         if random.random() < self.epsilon:
             # Akıllı keşif — kartı olmayan giymeyi deneme
@@ -54,8 +55,16 @@ class QLearningAgent:
             return random.choice(choices)
 
         q_vals = self._get_q(feats).copy()
-        if num_cards == 0:
+        if num_cards == 0 or (env and not env.has_upgrade_card()):
             q_vals[2] = -9999  # kart yoksa giyme
+        if power_diff <= 0:
+            q_vals[0] = -9999 #gücün canavara yetmiyorsa tek başına savaşma
+        if power_diff + 3 <= 0:
+            q_vals[4] = -9999  #yardım çağırmak kurtarmıyorsa yardım çağırma
+        
+        if np.max(q_vals) == -9999:
+            return 1
+
         return int(np.argmax(q_vals))
 
     def learn(self, state, action, reward, next_state, done):

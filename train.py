@@ -14,7 +14,7 @@ def train(episodes=5000, save_path="models/q_table.pkl", verbose=True):
     agent = QLearningAgent(action_space_size=5, epsilon=1.0)
 
     wins, total_rewards = 0, []
-    milestones = {1000, 2000, 3000, 4000, 5000}
+    milestones = {1000, 2000, 3000, 4000, 5000, 10000, 15000}
 
     # 1. ADIM: Klasörü oluşturup dosyanın başlık satırını döngü başlamadan önce (1 kez) yazıyoruz
     os.makedirs("docs", exist_ok=True)
@@ -97,4 +97,4 @@ def train(episodes=5000, save_path="models/q_table.pkl", verbose=True):
     return agent
 
 if __name__ == "__main__":
-    train(episodes=5000)
+    train(episodes=15000)
