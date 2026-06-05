@@ -4,14 +4,8 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="82c26709-e32b-4d17-80da-716c9f97b261" name="Changes" comment="Arayüzde iyileştirme yapıldı.">
+    <list default="true" id="82c26709-e32b-4d17-80da-716c9f97b261" name="Changes" comment="Deep Q-Learning yapıldı.">
       <change beforePath="$PROJECT_DIR$/../Ai Proje 2/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/docs/ai_final_report.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/docs/ai_final_report.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/docs/milestone_results.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/docs/milestone_results.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/docs/training_performance_graph.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/models/q_table.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/models/q_table.pkl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Ai Proje 2/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Ai Proje 2/train.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -183,7 +177,15 @@
       <option name="project" value="LOCAL" />
       <updated>1779835208604</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Deep Q-Learning yapıldı.">
+      <option name="closed" value="true" />
+      <created>1780697254697</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1780697254697</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -221,7 +223,8 @@
     <MESSAGE value="Eşya eklemesi yapıldı. Bazı eşyaların bazı canavarlara karşı dezavantajları oluşturuldu. Roller ve eşyaların bir arada öğrenilmesi sağlandı" />
     <MESSAGE value="Oyun mantığı tam olarak entegre edildi." />
     <MESSAGE value="Arayüzde iyileştirme yapıldı." />
-    <option name="LAST_COMMIT_MESSAGE" value="Arayüzde iyileştirme yapıldı." />
+    <MESSAGE value="Deep Q-Learning yapıldı." />
+    <option name="LAST_COMMIT_MESSAGE" value="Deep Q-Learning yapıldı." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/PythonProject1$main.coverage" NAME="main Coverage Results" MODIFIED="1778350917506" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../Ai Proje 2" />
