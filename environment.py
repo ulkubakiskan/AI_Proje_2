@@ -217,7 +217,7 @@ class MunchkinEnvironment:
         return roll, roll >= 5
 
     def step(self, action):
-        reward = 0
+        reward = -1
         done = False
         event = ""
         self.steps += 1
@@ -255,6 +255,7 @@ class MunchkinEnvironment:
                 treasures_gained = sum(m["treasures"] for m in self.current_monsters)
                 self.player_level += 1
                 reward = 10 + treasures_gained * 2
+                reward += 50
                 self.defense_bonus = 0
                 for _ in range(min(treasures_gained, 3)):
                     if len(self.treasure_cards) < 6:
@@ -267,9 +268,15 @@ class MunchkinEnvironment:
                 else:
                     self.current_monsters = [self._spawn_monster()]
             else:
-                reward = -20
-                done = True
                 bt_event = self._apply_bad_thing(monster)
+                if "ÖLÜM" in bt_event:
+                    reward = -100
+                    done = True
+                else:
+                    reward = -30
+                    done = False # Eşya/Seviye kaybetti ama HAYATTA!
+                    self.defense_bonus = 0
+                    self.current_monsters = [self._spawn_monster()]
                 event = f"💥 Savaş kaybedildi! {bt_event}"
 
         elif action == 1:
@@ -282,7 +289,7 @@ class MunchkinEnvironment:
                 event = f"🏃 Kaçış başarılı! (Zar: {roll}) Yeni canavar geliyor..."
             else:
                 bt_event = self._apply_bad_thing(monster)
-                reward = -15
+                reward = -80
                 done = True
                 event = f"😱 Kaçış başarısız! (Zar: {roll}) {bt_event}"
 
@@ -296,12 +303,12 @@ class MunchkinEnvironment:
                 reward = 2 + gain
                 event = f"🎒 {card['name']} giyildi! (+{gain} güç)"
             else:
-                reward = -2
+                reward = -10
                 event = "🎒 Yükseltecek kart yok."
 
         elif action == 3:
             self.defense_bonus = 3
-            reward = -1
+            reward = -5
             event = "🛡️ Savunma pozisyonu! (+3 güç sonraki saldırıda)"
 
         elif action == 4:
@@ -312,6 +319,7 @@ class MunchkinEnvironment:
                 shared = max(1, treasures // 2)
                 self.player_level += 1
                 reward = 5 + shared
+                reward += 40
                 self.defense_bonus = 0
                 for _ in range(shared):
                     if len(self.treasure_cards) < 6:
@@ -329,7 +337,7 @@ class MunchkinEnvironment:
                 roll, success = self._roll_escape()
                 if not success:
                     bt_event = self._apply_bad_thing(monster)
-                    reward = -12
+                    reward = -80
                     done = True
                     event += f" Kaçış başarısız (Zar:{roll}) {bt_event}"
 
