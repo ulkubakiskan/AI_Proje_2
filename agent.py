@@ -1,71 +1,117 @@
 import numpy as np
 import random
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from collections import deque
 
 
-class QLearningAgent:
+class QNetwork(nn.Module):
+    """3 Katmanlı Basit Bir İleri Beslemeli Sinir Ağı"""
+
+    def __init__(self, input_dim, output_dim):
+        super(QNetwork, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, output_dim)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        return self.fc3(x)
+
+
+class DQNAgent:
     """
-    Geliştirilmiş Q-Learning Agent
-    - 5 aksiyon (PDF mekanikleri: Yardım Çağır eklendi)
-    - Daha akıllı keşif politikası
-    - Durum özellik çıkarımı
+    Derin Q-Öğrenme Ajanı (DQN)
+    - PyTorch tabanlı Sinir Ağı
+    - Experience Replay (Deneyim Belleği)
     """
-    def __init__(self, action_space_size=5, learning_rate=0.1, discount_factor=0.95,
-                 epsilon=1.0, epsilon_decay=0.9975, min_epsilon=0.01):
+
+    def __init__(self, state_dim=9, action_space_size=5, learning_rate=0.001,
+                 discount_factor=0.95, epsilon=1.0, epsilon_decay=0.9975, min_epsilon=0.01):
+
+        self.state_dim = state_dim
         self.action_space_size = action_space_size
-        self.q_table           = {}
-        self.lr                = learning_rate
-        self.gamma             = discount_factor
-        self.epsilon           = epsilon
-        self.epsilon_decay     = epsilon_decay
-        self.min_epsilon       = min_epsilon
+        self.gamma = discount_factor
+        self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
+        self.min_epsilon = min_epsilon
 
-    def _get_q(self, state):
-        if state not in self.q_table:
-            self.q_table[state] = np.zeros(self.action_space_size)
-        return self.q_table[state]
+        # CPU veya GPU kullanımı
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def extract_features(self, raw_state):
-        """Ham state'den sıkıştırılmış özellik vektörü çıkar"""
-        # GÜNCELLEME: Gelen ham durumun (raw_state) boyutuna göre esnek parçalama yapıyoruz
-        if len(raw_state) == 9:
-            player_lvl, num_cards, active_power, monster_power, def_bonus, class_idx, race_idx, potential_upg, power_diff = raw_state
-        else:
-            # Eğer eski 8 elemanlı state gelirse hata vermemesi için koruma adımı
-            player_lvl, num_cards, active_power, monster_power, def_bonus, class_idx, potential_upg, power_diff = raw_state
-            race_idx = 0  # varsayılan değer
+        # Policy Net (Karar Ağı) ve Target Net (Hedef Ağ)
+        self.policy_net = QNetwork(state_dim, action_space_size).to(self.device)
+        self.target_net = QNetwork(state_dim, action_space_size).to(self.device)
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.eval()  # Hedef ağ sadece değerlendirme içindir
 
-        return (
-            max(-6, min(6, power_diff)),   # güç farkı
-            min(num_cards, 4),             # el kartı sayısı (max 4)
-            min(potential_upg, 5),         # en iyi yükseltme kazancı
-            def_bonus > 0,                 # savunma aktif mi
-            player_lvl >= 8,               # kritik seviye mi (10'a yakın)
-        )
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=learning_rate)
+
+        # Loss Fonksiyonu: L = E[(R + gamma * max Q(S', a') - Q(S, A))^2]
+        self.loss_fn = nn.MSELoss()
+
+        # Deneyim Belleği
+        self.memory = deque(maxlen=10000)
+        self.batch_size = 64
+
+    def remember(self, state, action, reward, next_state, done):
+        """Deneyimleri belleğe kaydet"""
+        self.memory.append((state, action, reward, next_state, done))
 
     def choose_action(self, state, env=None):
-        feats     = self.extract_features(state)
         num_cards = state[1]
 
+        # Keşif (Exploration)
         if random.random() < self.epsilon:
-            # Akıllı keşif — kartı olmayan giymeyi deneme
             choices = [0, 1, 3, 4]
             if num_cards > 0 and env and env.has_upgrade_card():
                 choices = [0, 2, 3, 4]
             return random.choice(choices)
 
-        q_vals = self._get_q(feats).copy()
-        if num_cards == 0:
-            q_vals[2] = -9999  # kart yoksa giyme
-        return int(np.argmax(q_vals))
+        # Sömürü (Exploitation) - Sinir ağı karar veriyor
+        with torch.no_grad():
+            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+            q_vals = self.policy_net(state_tensor).cpu().numpy()[0]
 
-    def learn(self, state, action, reward, next_state, done):
-        f      = self.extract_features(state)
-        f_next = self.extract_features(next_state)
-        q      = self._get_q(f)
-        q_next = self._get_q(f_next)
-        max_next = 0 if done else np.max(q_next)
-        q[action] = q[action] + self.lr * (reward + self.gamma * max_next - q[action])
-        self.q_table[f] = q
+            # Eğer kart yoksa giyme aksiyonunu (-9999) cezalandır
+            if num_cards == 0:
+                q_vals[2] = -9999
+            return int(np.argmax(q_vals))
+
+    def learn(self):
+        """Bellekten rastgele batch (küme) çekerek sinir ağını eğit"""
+        if len(self.memory) < self.batch_size:
+            return
+
+        batch = random.sample(self.memory, self.batch_size)
+        states, actions, rewards, next_states, dones = zip(*batch)
+
+        # Tensörlere çevirme
+        states = torch.FloatTensor(np.array(states)).to(self.device)
+        actions = torch.LongTensor(actions).unsqueeze(1).to(self.device)
+        rewards = torch.FloatTensor(rewards).unsqueeze(1).to(self.device)
+        next_states = torch.FloatTensor(np.array(next_states)).to(self.device)
+        dones = torch.FloatTensor(dones).unsqueeze(1).to(self.device)
+
+        # Mevcut durum için Policy Ağının Q değerleri
+        curr_Q = self.policy_net(states).gather(1, actions)
+
+        # Sonraki durum için Target Ağının maksimum Q değerleri
+        with torch.no_grad():
+            max_next_Q = self.target_net(next_states).max(1)[0].unsqueeze(1)
+            target_Q = rewards + (self.gamma * max_next_Q * (1 - dones))
+
+        # Ağı güncelle
+        loss = self.loss_fn(curr_Q, target_Q)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+    def update_target_network(self):
+        """Hedef ağı, belirli aralıklarla policy ağı ile senkronize et"""
+        self.target_net.load_state_dict(self.policy_net.state_dict())
 
     def decay_epsilon(self):
         self.epsilon = max(self.min_epsilon, self.epsilon * self.epsilon_decay)

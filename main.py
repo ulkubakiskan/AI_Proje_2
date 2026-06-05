@@ -1,34 +1,39 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import pickle, numpy as np, random
+import numpy as np
+import random
+import os
+import torch
+
 from environment import MunchkinEnvironment
-from agent import QLearningAgent
+from agent import DQNAgent
 
 app = FastAPI(title="Munchkin AI")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 try:
     app.mount("/docs", StaticFiles(directory="docs"), name="docs")
-except:
+except Exception:
     pass
 
-env   = MunchkinEnvironment()
-agent = QLearningAgent(action_space_size=5)
+env = MunchkinEnvironment()
+agent = DQNAgent(state_dim=9, action_space_size=5)
 
-# Q-table yükleme (eski tablo varsa yükle, yoksa yenisini başlat)
-try:
-    with open("models/q_table.pkl", "rb") as f:
-        loaded = pickle.load(f)
-    # Eski tablo uyumluluk kontrolü
-    if isinstance(loaded, dict):
-        agent.q_table = loaded
-        print(f"Model yüklendi: {len(agent.q_table):,} durum")
-    else:
-        print("Eski model formatı, yeni model başlatıldı.")
-except FileNotFoundError:
+# PyTorch Model Yükleme
+MODEL_PATH = "models/dqn_model.pth"
+if os.path.exists(MODEL_PATH):
+    try:
+        # Ajanın device ayarına göre CPU veya GPU'ya yükle
+        agent.policy_net.load_state_dict(torch.load(MODEL_PATH, map_location=agent.device, weights_only=True))
+        agent.policy_net.eval()  # Ağı değerlendirme moduna al
+        agent.epsilon = agent.min_epsilon  # Eğitilmiş model olduğu için rastgeleliği (keşfi) minimuma indir
+        print("DQN Modeli başarıyla yüklendi!")
+    except Exception as e:
+        print(f"Model yüklenirken hata oluştu: {e}")
+else:
     print("Model bulunamadı, sıfırdan başlıyor.")
 
-state      = env.reset()
+state = env.reset()
 step_count = 0
 
 # İstatistikler
@@ -44,28 +49,13 @@ ACTION_NAMES = {
 
 
 def get_agent_action():
-    """Agent aksiyonu seç (Q-table veya sezgisel)"""
-    feats = agent.extract_features(state)
-    if feats in agent.q_table:
-        q_vals = agent.q_table[feats].copy()
-        if state[1] == 0:
-            q_vals[2] = -9999
-        action = int(np.argmax(q_vals))
-        mode   = "q-table"
-    else:
-        # Sezgisel yedek (PDF mantığına uygun)
-        power_diff = state[7]  # player - monster güç farkı
-        if env.has_upgrade_card() and env.active_power < 12:
-            action = 2
-        elif power_diff > 0:
-            action = 0
-        elif power_diff < -3:
-            action = 3  # önce savunma
-        elif power_diff < -5:
-            action = 1  # kaç
-        else:
-            action = random.choice([3, 4])
-        mode = "sezgisel"
+    """DQN ile ajan aksiyonu seç"""
+    action = agent.choose_action(state, env)
+
+    # index.html 'q-table' stringini beklediği için uyumluluk adına bu ismi dönüyoruz.
+    # Frontend'de css bozulmaması için yapıldı, ancak arkada çalışan sistem artık bir Sinir Ağı.
+    mode = "q-table"
+
     return action, mode
 
 
@@ -77,7 +67,7 @@ async def root():
 @app.post("/reset")
 async def reset_game():
     global state, step_count
-    state      = env.reset()
+    state = env.reset()
     step_count = 0
     return {"message": "Yeni oyun başladı!", "status": env.get_status_dict()}
 
@@ -96,47 +86,57 @@ async def play_step():
 
     level_up = env.player_level > prev_level
 
-    # Online öğrenme
-    agent.learn(state, action, reward, next_state, done)
+    # Online Öğrenme (DQN Deneyim Belleği ve Öğrenme Adımı)
+    agent.remember(state, action, reward, next_state, done)
+    agent.learn()
     agent.decay_epsilon()
 
-    step_count        += 1
+    step_count += 1
     stats["total_steps"] += 1
+
+    # ÖNEMLİ DÜZELTME: Oyun sıfırlanmadan ÖNCE durumu kaydediyoruz!
+    current_game_status = env.get_status_dict()
+
+    # Eğer ajan öldüyse, ekranda canavarla karşılaştığı anki seviyesi görünsün
+    if done and env.player_level < env.max_level:
+        current_game_status["player_level"] = prev_level
 
     final_status = "devam"
     if done:
         stats["games"] += 1
         if env.player_level >= env.max_level:
-            stats["wins"]   += 1
-            final_status     = "kazandi"
+            stats["wins"] += 1
+            final_status = "kazandi"
         else:
             final_status = "oldu"
-        # Yeni oyun başlat
+
+        # Durum arayüze kaydedildikten SONRA yeni oyun başlat
         state = env.reset()
     else:
         state = next_state
 
-    win_rate = f"{stats['wins']/stats['games']*100:.1f}%" if stats["games"] > 0 else "—"
+    win_rate = f"{stats['wins'] / stats['games'] * 100:.1f}%" if stats["games"] > 0 else "—"
 
     return {
-        "step":         step_count,
-        "action":       ACTION_NAMES[action],
-        "action_id":    action,
-        "agent_mode":   mode,
-        "reward":       reward,
-        "event":        event,
-        "level_up":     level_up,
-        "status":       final_status,
-        "stats":        {**stats, "win_rate": win_rate, "epsilon": round(agent.epsilon, 3)},
-        "game_status":  env.get_status_dict(),
+        "step": step_count,
+        "action": ACTION_NAMES[action],
+        "action_id": action,
+        "agent_mode": mode,
+        "reward": reward,
+        "event": event,
+        "level_up": level_up,
+        "status": final_status,
+        "stats": {**stats, "win_rate": win_rate, "epsilon": round(agent.epsilon, 3), "q_states": len(agent.memory)},
+        "game_status": current_game_status,  # Artık sıfırlanmış değil, o anki durumu gönderiyor
     }
 
 
 @app.get("/stats")
 async def get_stats():
-    return {**stats, "q_table_size": len(agent.q_table), "epsilon": agent.epsilon}
+    return {**stats, "q_states": len(agent.memory), "epsilon": agent.epsilon}
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
